@@ -23,14 +23,14 @@ const NOT_FOUND: &str = "HTTP/1.1 404 NOT FOUND\r\n\r\n";
 const INTERNAL_ERROR: &str = "HTTP/1.1 500 INTERNAL ERROR\r\n\r\n";
 
 fn main() {
-    //Set Database
+    // Set Database function call
     if let Err(_) = set_database() {
         println!("Error setting database");
         return;
     }
 
 
-    //start server and print port
+    // Start server and print port
     let listener = TcpListener::bind(format!("0.0.0.0:8080")).unwrap();
     println!("Server listening on port 8080");
 
@@ -44,4 +44,19 @@ fn main() {
             }
         }
     }
+}
+
+// Database setup
+fn set_database() -> Result<(), PostgresError> {
+    let mut client = Client::connect(DB_URL, NoTls)?;
+    client.batch_execute(
+        "
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR NOT NULL,
+            email VARCHAR NOT NULL
+        )
+    "
+    )?;
+    Ok(())
 }
