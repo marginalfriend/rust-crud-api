@@ -144,6 +144,26 @@ fn handle_get_request(request: &str) -> (String, String) {
     }
 }
 
+// Handle get all request
+fn handle_get_all_request(_request: &str) -> (String, String) {
+    match Client::connect(DB_URL, NoTls) {
+        Ok(mut client) => {
+            let mut users = Vec::new();
+
+            for row in client.query("SELECT id, name, email FROM users", &[]).unwrap() {
+                users.push(User {
+                    id: row.get(0),
+                    name: row.get(1),
+                    email: row.get(2),
+                });
+            }
+
+            (OK_RESPONSE.to_string(), serde_json::to_string(&users).unwrap())
+        }
+        _ => (INTERNAL_ERROR.to_string(), "Internal error".to_string()),
+    }
+}
+
 // Handle put request
 fn handle_put_request(request: &str) -> (String, String) {
     match
@@ -171,7 +191,7 @@ fn handle_put_request(request: &str) -> (String, String) {
     }
 }
 
-//handle delete request
+// Handle delete request
 fn handle_delete_request(request: &str) -> (String, String) {
     match (get_id(&request).parse::<i32>(), Client::connect(DB_URL, NoTls)) {
         (Ok(id), Ok(mut client)) => {
