@@ -29,7 +29,6 @@ fn main() {
         return;
     }
 
-
     // Start server and print port
     let listener = TcpListener::bind(format!("0.0.0.0:8080")).unwrap();
     println!("Server listening on port 8080");
@@ -66,17 +65,18 @@ fn get_id(request: &str) -> &str {
     request.split("/").nth(2).unwrap_or_default().split_whitespace().next().unwrap_or_default()
 }
 
-// Deserialize user from request body without id
-// Together, "\r\n" forms a CRLF (Carriage Return Line Feed),
-// which is used to denote the end of a line of text.
-//
-// When you see "\r\n\r\n" in the context of an HTTP message, it signifies:
-//
-// 1. End of HTTP headers: HTTP headers are lines of key-value pairs that provide metadata
-// about the HTTP request or response.
-//
-// 2. Start of HTTP body: After the headers,
-// the body contains the actual data being sent in the HTTP request or response.
+/* Deserialize user from request body without id
+   Together, "\r\n" forms a CRLF (Carriage Return Line Feed),
+   which is used to denote the end of a line of text.
+
+   When you see "\r\n\r\n" in the context of an HTTP message, it signifies:
+
+   1. End of HTTP headers: HTTP headers are lines of key-value pairs that provide metadata
+   about the HTTP request or response.
+
+   2. Start of HTTP body: After the headers,
+   the body contains the actual data being sent in the HTTP request or response.
+*/
 
 fn get_user_request_body(request: &str) -> Result<User, serde_json::Error> {
     serde_json::from_str(request.split("\r\n\r\n").last().unwrap_or_default())
@@ -103,5 +103,22 @@ fn handle_client(mut stream: TcpStream) {
             stream.write_all(format!("{}{}", status_line, content).as_bytes()).unwrap();
         }
         Err(e) => eprintln!("Unable to read stream: {}", e),
+    }
+}
+
+// Handle post request
+fn handle_post_request(request: &str) -> (String, String) {
+    match (get_user_request_body(&request), Client::connect(DB_URL, NoTls)) {
+        (Ok(user), Ok(mut client)) => {
+            client
+                .execute(
+                    "INSERT INTO users (name, email) VALUES ($1, $2)",
+                    &[&user.name, &user.email]
+                )
+                .unwrap();
+
+            (OK_RESPONSE.to_string(), "User created".to_string())
+        }
+        _ => (INTERNAL_ERROR.to_string(), "Internal error".to_string()),
     }
 }
