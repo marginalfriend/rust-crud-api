@@ -60,3 +60,8 @@ fn set_database() -> Result<(), PostgresError> {
     )?;
     Ok(())
 }
+
+//Get id from request URL
+fn get_id(request: &str) -> &str {
+    request.split("/").nth(2).unwrap_or_default().split_whitespace().next().unwrap_or_default()
+}
